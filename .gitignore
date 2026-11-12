@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.DS_Store
+.vite/
+
+# Crash artifacts — keep oversized process dumps out of version control
+core
+core.*
+*.heapsnapshot
+report.*.json
+isolate-*.log

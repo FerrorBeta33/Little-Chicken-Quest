@@ -1,0 +1,21 @@
+{
+  "name": "little-chicken-quest",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 4173 --strictPort",
+    "build": "vite build",
+    "lint": "eslint .",
+    "format": "prettier --write index.html src/*.js src/style.css eslint.config.js",
+    "check": "node --check src/config.js && node --check src/controls.js && node --check src/game.js && node --check src/main.js && node --check src/village.js"
+  },
+  "dependencies": {
+    "three": "latest"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "prettier": "latest",
+    "vite": "latest"
+  }
+}

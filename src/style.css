@@ -1,0 +1,255 @@
+.game-page,
+.game-page * {
+  box-sizing: border-box;
+}
+
+.game-page {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ui-text);
+  background: var(--ui-canvas-base);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.game-scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--ui-canvas-base);
+}
+
+#game-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.intro-panel {
+  position: absolute;
+  z-index: 1;
+  top: max(1.25rem, env(safe-area-inset-top));
+  left: max(1.25rem, env(safe-area-inset-left));
+  width: min(24rem, calc(100vw - 2.5rem));
+  padding: 1.25rem 1.5rem 1.375rem;
+  border: 1px solid var(--ui-panel-border);
+  border-radius: 1.25rem;
+  background: var(--ui-panel);
+  box-shadow: 0 0.75rem 2rem var(--ui-shadow);
+  backdrop-filter: blur(12px);
+}
+
+.scene-label {
+  margin: 0 0 0.5rem;
+  color: var(--warm-light);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.intro-panel__title {
+  margin: 0;
+  font-size: clamp(1.5rem, 5vw, 1.875rem);
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.intro-copy {
+  margin: 0.75rem 0 0;
+  color: var(--ui-muted);
+  font-size: 1rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.quality-note {
+  margin: 0.75rem 0 0;
+  color: var(--warm-light);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.desktop-hint {
+  position: absolute;
+  z-index: 1;
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  left: 50%;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  transform: translateX(-50%);
+  border: 1px solid var(--ui-panel-border);
+  border-radius: 999px;
+  background: var(--ui-panel);
+  box-shadow: 0 0.5rem 1.5rem var(--ui-shadow);
+  color: var(--ui-text);
+  font-size: 0.875rem;
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+}
+
+.desktop-hint kbd {
+  font: inherit;
+  font-weight: 700;
+}
+
+.desktop-hint__separator {
+  padding: 0 0.4rem;
+  color: var(--ui-muted);
+}
+
+.mobile-controls {
+  position: absolute;
+  z-index: 2;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  left: max(1rem, env(safe-area-inset-left));
+  display: none;
+  align-items: end;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.joystick {
+  position: relative;
+  display: grid;
+  width: 8rem;
+  height: 8rem;
+  place-items: center;
+  border: 1px solid var(--ui-panel-border);
+  border-radius: 50%;
+  background: var(--ui-panel);
+  box-shadow: 0 0.5rem 1.5rem var(--ui-shadow);
+  touch-action: none;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.joystick__label {
+  color: var(--ui-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+
+.joystick__thumb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3.25rem;
+  height: 3.25rem;
+  margin: -1.625rem;
+  border: 2px solid var(--ui-panel-border);
+  border-radius: 50%;
+  background: var(--ui-accent);
+  box-shadow: 0 0.25rem 0.75rem var(--ui-shadow);
+  pointer-events: none;
+}
+
+.mobile-controls__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: end;
+  pointer-events: auto;
+}
+
+.action-button {
+  min-width: 4.5rem;
+  min-height: 4.5rem;
+  padding: 0.75rem;
+  font: inherit;
+  border: 1px solid var(--ui-panel-border);
+  border-radius: 50%;
+  background: var(--ui-panel);
+  box-shadow: 0 0.5rem 1.5rem var(--ui-shadow);
+  color: var(--ui-text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  touch-action: manipulation;
+  transition:
+    background-color 150ms ease-out,
+    transform 150ms ease-out;
+}
+
+.action-button--cluck {
+  min-width: 5rem;
+  min-height: 5rem;
+  background: var(--ui-accent);
+}
+
+.action-button:hover {
+  background: var(--ui-accent-hover);
+}
+
+.action-button:active {
+  transform: scale(0.96);
+}
+
+.action-button:focus-visible,
+.joystick:focus-visible {
+  outline: 3px solid var(--ui-focus);
+  outline-offset: 3px;
+}
+
+.status-message {
+  position: absolute;
+  z-index: 3;
+  right: 1rem;
+  bottom: max(7rem, env(safe-area-inset-bottom));
+  left: 1rem;
+  width: fit-content;
+  max-width: min(38rem, calc(100vw - 2rem));
+  margin: 0 auto;
+  padding: 0.875rem 1.125rem;
+  border: 1px solid var(--ui-panel-border);
+  border-radius: 0.75rem;
+  background: var(--ui-panel);
+  color: var(--ui-text);
+  font-size: 1rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.status-message[data-state="error"] {
+  border-color: var(--warm-light);
+}
+
+@media (pointer: coarse), (max-width: 768px) {
+  .intro-panel {
+    top: max(0.75rem, env(safe-area-inset-top));
+    left: max(0.75rem, env(safe-area-inset-left));
+    width: min(21rem, calc(100vw - 1.5rem));
+    padding: 1rem 1.125rem;
+  }
+
+  .intro-panel__title {
+    font-size: 1.5rem;
+  }
+
+  .mobile-controls {
+    display: flex;
+  }
+
+  .desktop-hint {
+    display: none;
+  }
+
+  .status-message {
+    bottom: max(7.5rem, calc(env(safe-area-inset-bottom) + 7rem));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-button {
+    transition: none;
+  }
+}

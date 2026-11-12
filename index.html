@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta
+      name="description"
+      content="A small chicken begins a respectful journey to see Jatayu at dawn."
+    />
+    <title>Little Chicken Quest</title>
+  </head>
+  <body class="game-page">
+    <main class="game-scene" aria-label="Little Chicken Quest, dawn village">
+      <canvas
+        id="game-canvas"
+        aria-label="Explore a village path as a little chicken"
+      ></canvas>
+
+      <section class="intro-panel" aria-labelledby="game-title">
+        <p class="scene-label">Dawn village</p>
+        <h1 id="game-title" class="intro-panel__title">Little Chicken Quest</h1>
+        <p id="intro-copy" class="intro-copy"></p>
+        <p id="quality-note" class="quality-note" hidden>Low quality mode</p>
+      </section>
+
+      <p class="desktop-hint" aria-label="Keyboard and mouse controls">
+        <kbd>W A S D</kbd> or <kbd>↑ ↓ ← →</kbd> walk
+        <span class="desktop-hint__separator" aria-hidden="true">·</span>
+        <kbd>Space</kbd> jump
+        <span class="desktop-hint__separator" aria-hidden="true">·</span>
+        Drag to look
+      </p>
+
+      <div class="mobile-controls" aria-label="Touch controls">
+        <div
+          id="joystick"
+          class="joystick"
+          role="group"
+          aria-label="Movement joystick"
+        >
+          <span class="joystick__label" aria-hidden="true">MOVE</span>
+          <span
+            id="joystick-thumb"
+            class="joystick__thumb"
+            aria-hidden="true"
+          ></span>
+        </div>
+        <div class="mobile-controls__actions">
+          <button
+            id="jump-button"
+            class="action-button"
+            type="button"
+            aria-label="Jump"
+          >
+            Jump
+          </button>
+          <button
+            id="cluck-button"
+            class="action-button action-button--cluck"
+            type="button"
+            aria-label="Cluck, hop and flap"
+          >
+            Cluck
+          </button>
+        </div>
+      </div>
+
+      <p
+        id="status-message"
+        class="status-message"
+        role="status"
+        aria-live="polite"
+      >
+        Preparing the dawn village…
+      </p>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

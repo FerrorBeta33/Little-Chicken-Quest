@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#372e3f">
+  <title>Little Chicken Quest</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #fff1d2;
+      --ink-soft: #f4d9b2;
+      --glass: rgba(48, 39, 50, .68);
+      --line: rgba(255, 232, 190, .28);
+      --gold: #ffd86a;
+      --focus: #fff0bf;
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body {
+      background: #4b3d4d;
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+    button { font: inherit; color: inherit; }
+    #stage { position: fixed; inset: 0; overflow: hidden; background: #7b6374; }
+    #painting { display: block; width: 100%; height: 100%; }
+    #vignette {
+      position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse at 50% 46%, transparent 44%, rgba(42, 31, 43, .34) 100%);
+    }
+    #title-screen {
+      position: absolute; inset: 0; z-index: 3; display: grid; place-items: center;
+      padding: 24px; text-align: center;
+      background: linear-gradient(180deg, rgba(54, 43, 56, .06), rgba(43, 34, 47, .54));
+      transition: opacity .8s ease, visibility .8s ease;
+    }
+    #title-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .title-card { max-width: 680px; transform: translateY(-2vh); }
+    .title-kicker { margin: 0 0 12px; color: #ffe7b3; font-size: 14px; letter-spacing: .2em; text-transform: uppercase; }
+    h1 { margin: 0; font-weight: 400; font-size: clamp(44px, 8vw, 96px); line-height: .98; text-shadow: 0 4px 30px rgba(89, 45, 44, .36); }
+    .title-note { margin: 20px auto 28px; max-width: 36ch; color: #fff0d2; font-size: clamp(16px, 2.2vw, 20px); line-height: 1.5; }
+    .controlbar {
+      position: absolute; z-index: 2; inset: auto 0 0; display: flex; align-items: center;
+      justify-content: space-between; gap: 12px; padding: 18px clamp(16px, 4vw, 52px) max(18px, env(safe-area-inset-bottom));
+      background: linear-gradient(0deg, rgba(37, 31, 41, .7), transparent);
+      opacity: 0; transform: translateY(10px); pointer-events: none;
+      transition: opacity .5s ease, transform .5s ease;
+    }
+    .controlbar.visible { opacity: 1; transform: none; pointer-events: auto; }
+    .chapter { min-width: 120px; text-shadow: 0 2px 8px #382f3e; }
+    .chapter strong { display: block; font-size: 17px; font-weight: 400; }
+    .chapter span { display: block; margin-top: 4px; color: var(--ink-soft); font-size: 13px; }
+    .actions { display: flex; justify-content: flex-end; align-items: center; gap: 9px; }
+    .button {
+      min-height: 46px; min-width: 46px; display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px;
+      background: var(--glass); color: var(--ink); cursor: pointer; backdrop-filter: blur(12px);
+      box-shadow: 0 7px 22px rgba(49, 37, 47, .16);
+      transition: transform .15s ease, background .15s ease, border-color .15s ease;
+    }
+    .button:hover { background: rgba(86, 68, 72, .82); border-color: rgba(255, 239, 204, .56); }
+    .button:active { transform: scale(.97); }
+    .button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+    .button.primary { color: #513824; background: #ffdc85; border-color: rgba(255, 250, 216, .7); }
+    .button.primary:hover { background: #ffebaf; }
+    .button.icon { padding: 0; width: 48px; font-family: Arial, sans-serif; font-size: 21px; }
+    .button.cluck { color: #fff3d2; }
+    #hint { position: absolute; z-index: 2; left: 50%; bottom: 86px; transform: translateX(-50%); color: rgba(255, 242, 219, .88); font: 13px/1.4 Arial, sans-serif; text-shadow: 0 2px 8px #382f3e; white-space: nowrap; opacity: 0; transition: opacity .4s ease; }
+    #hint.visible { opacity: 1; }
+    @media (max-width: 620px) {
+      .controlbar { align-items: flex-end; padding-left: 14px; padding-right: 14px; gap: 8px; }
+      .chapter { min-width: 84px; padding-bottom: 4px; }
+      .chapter strong { font-size: 15px; }
+      .chapter span { font-size: 11px; }
+      .actions { gap: 6px; }
+      .button { min-height: 44px; min-width: 44px; padding: 0 12px; }
+      .button.icon { width: 44px; }
+      .button.cluck { padding: 0 11px; }
+      #hint { bottom: 78px; font-size: 12px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main id="stage" aria-label="Little Chicken Quest painted story">
+    <canvas id="painting" aria-label="Oil-painted dawn village and mountain eagle statue scenes"></canvas>
+    <div id="vignette"></div>
+    <section id="title-screen" aria-labelledby="game-title">
+      <div class="title-card">
+        <p class="title-kicker">A little journey at golden dawn</p>
+        <h1 id="game-title">Little Chicken<br>Quest</h1>
+        <p class="title-note">A small heart climbs toward a great old guardian.</p>
+        <button id="start-button" class="button primary" type="button">Begin the journey <span aria-hidden="true">→</span></button>
+      </div>
+    </section>
+    <div id="hint" aria-live="polite">WASD to wander · Space to hop · ← → to view scenes</div>
+    <nav class="controlbar" id="controlbar" aria-label="Story scene controls">
+      <div class="chapter"><strong id="chapter-title">01 · Dawn village</strong><span id="chapter-subtitle">A path through the waking valley</span></div>
+      <div class="actions">
+        <button class="button icon" id="back-button" type="button" aria-label="Previous scene">‹</button>
+        <button class="button cluck" id="cluck-button" type="button" aria-label="Cluck, hop, and flap">Cluck</button>
+        <button class="button" id="next-button" type="button">Next <span aria-hidden="true">›</span></button>
+      </div>
+    </nav>
+  </main>
+<script>
+(() => {
+  // EDIT HERE: the palette and story labels are kept together for easy changes.
+  const palette = {
+    skyTop: "#c5a8b7", sky: "#e7a987", dawn: "#f3bd78", sun: "#ffe3a0",
+    mist: "#c9b8c8", farHill: "#827b86", hill: "#566b4d", leaf: "#6e8a3a",
+    leafLight: "#a1a84e", earth: "#c2573a", earthMid: "#8f3a2a", earthShade: "#5a2a25",
+    rock: "#8a6048", rockLight: "#c9936a", chicken: "#f6e3b0", chickenMid: "#e5b96a",
+    comb: "#d83a2b", bag: "#3f6f63", gold: "#ffd86a", goldMid: "#e0a030",
+    stone: "#b89574", stoneLight: "#e8c9a0", stoneShade: "#6e5545", white: "#f7e9d0"
+  };
+  const chapters = [
+    { number: "01", title: "Dawn village", subtitle: "A path through the waking valley" },
+    { number: "05", title: "The summit guardian", subtitle: "A quiet tribute at the hilltop" }
+  ];
+  const canvas = document.getElementById("painting");
+  const context = canvas.getContext("2d", { alpha: false });
+  const titleScreen = document.getElementById("title-screen");
+  const controlbar = document.getElementById("controlbar");
+  const hint = document.getElementById("hint");
+  const chapterTitle = document.getElementById("chapter-title");
+  const chapterSubtitle = document.getElementById("chapter-subtitle");
+  const world = document.createElement("canvas");
+  world.width = 1440;
+  world.height = 810;
+  const W = world.width;
+  const H = world.height;
+  const dynamicLayer = document.createElement("canvas");
+  dynamicLayer.width = W;
+  dynamicLayer.height = H;
+  let paint = world.getContext("2d");
+  const dynamicPaint = dynamicLayer.getContext("2d");
+  let active = false;
+  let scene = 0;
+  let lastTime = 0;
+  let time = 0;
+  let chickenX = 0;
+  let chickenDepth = 0;
+  let hop = 0;
+  let hopVelocity = 0;
+  let cameraTarget = 0;
+  let camera = 0;
+  const held = new Set();
+  const dust = Array.from({ length: 72 }, (_, index) => ({
+    x: ((index * 173) % 1400) + 20,
+    y: ((index * 281) % 740) + 30,
+    r: 1 + (index % 4) * 0.55,
+    speed: 7 + (index % 9) * 1.8,
+    phase: index * 1.71
+  }));
+
+  function seededNoise(value) {
+    const result = Math.sin(value * 127.1 + 311.7) * 43758.5453;
+    return result - Math.floor(result);
+  }
+  function dab(x, y, length, width, color, angle = 0, alpha = 1) {
+    paint.save();
+    paint.translate(x, y);
+    paint.rotate(angle);
+    paint.globalAlpha = alpha;
+    paint.strokeStyle = color;
+    paint.lineWidth = width;
+    paint.lineCap = "round";
+    paint.beginPath();
+    paint.moveTo(-length * 0.5, 0);
+    paint.quadraticCurveTo(0, -width * 0.18, length * 0.5, 0);
+    paint.stroke();
+    paint.restore();
+  }
+  function strokeField(x, y, width, height, count, colors, angle, seed) {
+    for (let index = 0; index < count; index += 1) {
+      const u = seededNoise(seed + index * 2.13);
+      const v = seededNoise(seed + index * 4.97 + 8);
+      const color = colors[index % colors.length];
+      dab(x + u * width, y + v * height, 10 + seededNoise(seed + index * 8.3) * 38,
+        2 + seededNoise(seed + index * 6.1) * 6, color,
+        angle + (seededNoise(seed + index * 9.2) - 0.5) * 0.48,
+        0.36 + seededNoise(seed + index * 5.7) * 0.42);
+    }
+  }
+  function wash(colorA, colorB) {
+    const gradient = paint.createLinearGradient(0, 0, 0, H);
+    gradient.addColorStop(0, colorA);
+    gradient.addColorStop(0.58, colorB);
+    gradient.addColorStop(1, palette.dawn);
+    paint.fillStyle = gradient;
+    paint.fillRect(0, 0, W, H);
+  }
+  function drawSun() {
+    const glow = paint.createRadialGradient(1040, 260, 10, 1040, 260, 310);
+    glow.addColorStop(0, "rgba(255,236,174,.78)");
+    glow.addColorStop(0.28, "rgba(255,207,139,.3)");
+    glow.addColorStop(1, "rgba(255,201,151,0)");
+    paint.fillStyle = glow;
+    paint.fillRect(730, 0, 620, 600);
+    paint.fillStyle = palette.sun;
+    paint.beginPath();
+    paint.arc(1040, 260, 76, 0, Math.PI * 2);
+    paint.fill();
+    strokeField(945, 250, 190, 28, 40, ["#fff0bf", "#ffe0a0", "#f8ca8b"], -0.05, 16);
+  }
+  function drawHill(points, fill, strokeColors, seed) {
+    paint.beginPath();
+    paint.moveTo(points[0][0], H);
+    points.forEach(([x, y]) => paint.lineTo(x, y));
+    paint.lineTo(points[points.length - 1][0], H);
+    paint.closePath();
+    paint.fillStyle = fill;
+    paint.fill();
+    const minX = Math.min(...points.map(point => point[0]));
+    const maxX = Math.max(...points.map(point => point[0]));
+    const minY = Math.min(...points.map(point => point[1]));
+    paint.save();
+    paint.beginPath();
+    paint.moveTo(points[0][0], H);
+    points.forEach(([x, y]) => paint.lineTo(x, y));
+    paint.lineTo(points[points.length - 1][0], H);
+    paint.closePath();
+    paint.clip();
+    strokeField(minX, minY, maxX - minX, H - minY, 180, strokeColors, -0.2, seed);
+    paint.restore();
+  }
+  function drawMist(y, alpha, seed) {
+    paint.save();
+    paint.globalAlpha = alpha;
+    for (let band = 0; band < 5; band += 1) {
+      const offset = seededNoise(seed + band) * 80;
+      paint.fillStyle = band % 2 ? "#ead2cf" : palette.mist;
+      paint.beginPath();
+      paint.ellipse(130 + band * 255 + offset, y + band * 8, 360, 36 + band * 5, 0, 0, Math.PI * 2);
+      paint.fill();
+      strokeField(0, y - 28 + band * 9, W, 55, 34, ["#e4cbd0", "#f1d6c5", "#d8c6d1"], 0, seed + band * 13);
+    }
+    paint.restore();
+  }
+  function drawHouse(x, y, scale, seed) {
+    paint.save();
+    paint.translate(x, y);
+    paint.scale(scale, scale);
+    paint.fillStyle = "#f5dfbd";
+    paint.beginPath();
+    paint.moveTo(0, 55); paint.lineTo(12, 6); paint.lineTo(116, 0); paint.lineTo(132, 52);
+    paint.lineTo(132, 132); paint.lineTo(0, 132); paint.closePath(); paint.fill();
+    strokeField(8, 14, 110, 104, 48, ["#fff0d5", "#ead2b0", "#f8e5c9"], 0.12, seed);
+    paint.fillStyle = palette.earthMid;
+    paint.beginPath(); paint.moveTo(-12, 48); paint.lineTo(60, -6); paint.lineTo(143, 42);
+    paint.lineTo(136, 62); paint.lineTo(60, 20); paint.lineTo(-6, 63); paint.closePath(); paint.fill();
+    strokeField(-2, 11, 138, 42, 46, [palette.earth, "#71372e", "#a94c35"], 0.18, seed + 41);
+    for (let tile = 0; tile < 8; tile += 1) {
+      dab(16 + tile * 14, 31 + (tile % 2) * 7, 25, 2.5, "#cc7050", 0.18, 0.75);
+    }
+    paint.fillStyle = "#70463b";
+    paint.fillRect(50, 78, 28, 54);
+    paint.fillStyle = "#bc7d54";
+    paint.fillRect(14, 72, 22, 24);
+    paint.fillRect(96, 72, 22, 24);
+    dab(25, 81, 15, 3, "#fff1d4", 0, 0.85);
+    dab(107, 81, 15, 3, "#fff1d4", 0, 0.85);
+    paint.restore();
+  }
+  function drawPalm(x, y, scale, seed) {
+    paint.save();
+    paint.translate(x, y);
+    paint.scale(scale, scale);
+    paint.strokeStyle = "#73503e";
+    paint.lineWidth = 13;
+    paint.lineCap = "round";
+    paint.beginPath(); paint.moveTo(0, 0); paint.quadraticCurveTo(-26, -142, 10, -284); paint.stroke();
+    for (let ring = 0; ring < 8; ring += 1) {
+      dab(-7 + ring * 1.4, -30 - ring * 28, 16, 3.2, "#9d6848", -1.42, 0.7);
+    }
+    const crownX = 10, crownY = -282;
+    for (let frond = 0; frond < 8; frond += 1) {
+      const angle = -2.9 + frond * 0.43;
+      const length = 104 + seededNoise(seed + frond) * 46;
+      const endX = crownX + Math.cos(angle) * length;
+      const endY = crownY + Math.sin(angle) * length * 0.54 + 26;
+      paint.strokeStyle = frond % 3 === 0 ? "#4e632e" : palette.leaf;
+      paint.lineWidth = 7;
+      paint.beginPath(); paint.moveTo(crownX, crownY); paint.quadraticCurveTo(crownX + Math.cos(angle) * 55, crownY - 38, endX, endY); paint.stroke();
+      for (let leaf = 1; leaf < 10; leaf += 1) {
+        const t = leaf / 10;
+        const cx = crownX + (endX - crownX) * t;
+        const cy = crownY + (endY - crownY) * t - Math.sin(t * Math.PI) * 17;
+        const spread = 16 + t * 13;
+        dab(cx - spread * 0.45, cy + spread * 0.45, 24 - t * 8, 4, palette.leafLight, angle + 1.05, 0.86);
+        dab(cx + spread * 0.45, cy + spread * 0.45, 24 - t * 8, 4, palette.leaf, angle + 2.1, 0.82);
+      }
+    }
+    paint.restore();
+  }
+  function drawHibiscus(x, y, scale, seed) {
+    paint.save();
+    paint.translate(x, y); paint.scale(scale, scale);
+    for (let flower = 0; flower < 3; flower += 1) {
+      const cx = flower * 27, cy = (flower % 2) * -18;
+      paint.fillStyle = flower === 1 ? "#df6344" : "#bb4439";
+      for (let petal = 0; petal < 5; petal += 1) {
+        paint.save(); paint.translate(cx, cy); paint.rotate(petal * Math.PI * 0.4);
+        paint.beginPath(); paint.ellipse(0, -12, 9, 18, 0, 0, Math.PI * 2); paint.fill();
+        dab(0, -16, 14, 3, "#f1885d", 0, 0.82); paint.restore();
+      }
+      dab(cx + 4, cy - 20, 21, 3, "#f2c878", -1.3, 0.85);
+    }
+    strokeField(-15, -45, 110, 62, 28, [palette.leaf, "#4e6733", "#879341"], -0.45, seed);
+    paint.restore();
+  }
+  function drawPath() {
+    paint.fillStyle = palette.earthShade;
+    paint.beginPath(); paint.moveTo(555, 490); paint.lineTo(860, 490); paint.lineTo(1370, 810); paint.lineTo(120, 810); paint.closePath(); paint.fill();
+    paint.fillStyle = palette.earthMid;
+    paint.beginPath(); paint.moveTo(590, 492); paint.lineTo(820, 492); paint.lineTo(1115, 810); paint.lineTo(335, 810); paint.closePath(); paint.fill();
+    strokeField(335, 500, 780, 305, 470, [palette.earth, "#a64b33", "#a44430", "#db7950"], 1.15, 303);
+    for (let mark = 0; mark < 70; mark += 1) {
+      const y = 530 + mark * 3.9;
+      const half = 82 + (y - 530) * 0.69;
+      dab(720 + (seededNoise(mark + 4) - 0.5) * half, y, 18 + seededNoise(mark + 120) * 32, 2.4, "#e28a5b", 0.08, 0.25);
+    }
+  }
+  function drawVillage() {
+    wash(palette.skyTop, palette.sky);
+    drawSun();
+    drawHill([[0, 410], [120, 345], [240, 380], [420, 295], [570, 370], [760, 292], [920, 360], [1110, 286], [1260, 344], [1440, 285]], "#a98991", ["#b7989b", "#967d8a", "#d5a495"], 12);
+    drawHill([[0, 490], [170, 386], [360, 465], [545, 360], [720, 456], [940, 362], [1110, 432], [1300, 340], [1440, 415]], "#74836e", ["#839274", "#6d7c5e", "#a1a578"], 44);
+    drawMist(370, 0.56, 90);
+    // Paddy terraces: broad curved bands with short planted brush marks.
+    for (let terrace = 0; terrace < 5; terrace += 1) {
+      const y = 425 + terrace * 43;
+      paint.fillStyle = terrace % 2 ? "#788b4c" : "#9aa35a";
+      paint.beginPath(); paint.moveTo(0, y + 28); paint.quadraticCurveTo(350, y - 25, 690, y + 22);
+      paint.lineTo(690, y + 55); paint.quadraticCurveTo(310, y + 5, 0, y + 57); paint.closePath(); paint.fill();
+      strokeField(0, y, 710, 49, 72, ["#718640", "#b0ad61", "#657b3f"], 0.12, terrace * 24 + 180);
+      for (let reed = 0; reed < 20; reed += 1) dab(reed * 34 + terrace * 10, y + 19 + (reed % 3) * 5, 7, 2, "#d3c77a", -0.9, 0.4);
+    }
+    drawHouse(170, 380, 1.13, 510);
+    drawHouse(385, 404, 0.82, 550);
+    drawHouse(1135, 394, 0.9, 590);
+    drawPalm(1070, 465, 0.94, 66);
+    drawPalm(1320, 438, 0.72, 73);
+    drawPalm(70, 475, 0.68, 87);
+    // Distant temple tower in the mist.
+    paint.fillStyle = "#786c72";
+    paint.fillRect(730, 330, 54, 93);
+    paint.beginPath(); paint.moveTo(720, 331); paint.lineTo(757, 278); paint.lineTo(794, 331); paint.closePath(); paint.fill();
+    for (let tier = 0; tier < 4; tier += 1) {
+      paint.fillStyle = tier % 2 ? "#8b7779" : "#6b626c";
+      paint.fillRect(735 - tier * 3, 320 - tier * 11, 44 + tier * 6, 10);
+    }
+    paint.fillStyle = "rgba(212,193,197,.45)"; paint.fillRect(708, 348, 100, 90);
+    for (let tile = 0; tile < 25; tile += 1) {
+      dab(708 + seededNoise(tile + 500) * 100, 365 + seededNoise(tile + 700) * 68, 20, 8, "#d6c2c5", 0.1, 0.18);
+    }
+    drawMist(464, 0.34, 120);
+    drawPath();
+    drawHibiscus(52, 692, 1.5, 33);
+    drawHibiscus(1280, 680, 1.25, 41);
+    // Foreground leaves frame the little road without hiding its destination.
+    strokeField(-20, 570, 260, 245, 160, ["#35492e", "#5c7138", "#879344"], -0.65, 800);
+    strokeField(1210, 580, 260, 245, 150, ["#394b30", "#697d3d", "#a0a34f"], -0.55, 840);
+  }
+  function drawFeather(x, y, scale, glow = true) {
+    paint.save(); paint.translate(x, y); paint.scale(scale, scale);
+    if (glow) {
+      const shine = paint.createRadialGradient(0, 0, 2, 0, 0, 58);
+      shine.addColorStop(0, "rgba(255,223,112,.35)"); shine.addColorStop(1, "rgba(255,216,106,0)");
+      paint.fillStyle = shine; paint.fillRect(-62, -62, 124, 124);
+    }
+    paint.fillStyle = palette.gold;
+    paint.beginPath(); paint.moveTo(0, -34); paint.bezierCurveTo(42, -5, 24, 26, 0, 35);
+    paint.bezierCurveTo(-19, 17, -29, -14, 0, -34); paint.fill();
+    paint.strokeStyle = palette.goldMid; paint.lineWidth = 2.4;
+    paint.beginPath(); paint.moveTo(-1, 31); paint.quadraticCurveTo(7, 3, 0, -29); paint.stroke();
+    for (let vein = 0; vein < 6; vein += 1) {
+      const yy = -18 + vein * 8;
+      dab(-7, yy, 17, 2, "#fff0a6", -0.58, 0.85);
+      dab(8, yy - 3, 15, 2, "#f7b843", 0.7, 0.75);
+    }
+    paint.restore();
+  }
+  function drawStoneStroke(x, y, length, angle, color, width = 7, alpha = 0.55) {
+    dab(x, y, length, width, color, angle, alpha);
+    dab(x - 2, y - 3, length * 0.48, Math.max(2, width * 0.34), palette.stoneLight, angle - 0.08, alpha * 0.55);
+  }
+  function drawFeatherFan(cx, cy, count, length, angle, color) {
+    for (let feather = 0; feather < count; feather += 1) {
+      const spread = (feather - (count - 1) / 2) * 0.12;
+      const fx = cx + Math.cos(angle + spread) * length * 0.48;
+      const fy = cy + Math.sin(angle + spread) * length * 0.48;
+      paint.save(); paint.translate(fx, fy); paint.rotate(angle + spread);
+      paint.fillStyle = color;
+      paint.beginPath(); paint.ellipse(0, 0, length * 0.56, 24 + (feather % 3) * 3, 0, 0, Math.PI * 2); paint.fill();
+      strokeField(-length * 0.42, -16, length * 0.82, 32, 26,
+        [palette.stoneLight, palette.stone, "#a78264", "#c7a27d"], 0.08, 1030 + feather * 19);
+      paint.restore();
+    }
+  }
+  function drawEagle() {
+    // Original reclining guardian silhouette; carved, weathered stone, not a copied landmark.
+    paint.save();
+    // Wide grounded wings.
+    drawFeatherFan(640, 480, 13, 455, 3.18, "#9f7d61");
+    drawFeatherFan(948, 476, 13, 440, -0.12, "#a98769");
+    // Wing roots and feather ribs.
+    paint.fillStyle = palette.stone;
+    paint.beginPath(); paint.ellipse(790, 486, 232, 96, -0.03, 0, Math.PI * 2); paint.fill();
+    strokeField(575, 412, 430, 150, 230, [palette.stoneLight, "#a98769", "#a17f62", "#c6a27c"], 0.12, 1330);
+    for (let feather = 0; feather < 9; feather += 1) {
+      const x = 480 + feather * 34;
+      drawStoneStroke(x, 482 + (feather % 3) * 10, 148, -0.18 + feather * 0.02, feather % 2 ? "#c5a17e" : "#a27f62", 13, 0.64);
+      drawStoneStroke(860 + feather * 33, 485 + (feather % 3) * 9, 140, 0.18 - feather * 0.02, feather % 2 ? "#c5a17e" : "#a27f62", 13, 0.62);
+    }
+    // Body and shoulder mantle.
+    paint.fillStyle = "#ad8a6b";
+    paint.beginPath(); paint.ellipse(784, 478, 226, 125, -0.06, 0, Math.PI * 2); paint.fill();
+    strokeField(570, 375, 420, 190, 330, ["#d4b18b", "#b89574", "#9d7b60", "#c4a07d"], -0.05, 1390);
+    // Long neck and proud raised head.
+    paint.fillStyle = "#c0a080";
+    paint.beginPath(); paint.moveTo(904, 473); paint.quadraticCurveTo(1004, 414, 1020, 318);
+    paint.quadraticCurveTo(1036, 262, 1092, 264); paint.quadraticCurveTo(1149, 268, 1165, 314);
+    paint.quadraticCurveTo(1174, 354, 1137, 377); paint.quadraticCurveTo(1098, 392, 1092, 434);
+    paint.quadraticCurveTo(1067, 487, 978, 523); paint.closePath(); paint.fill();
+    strokeField(944, 290, 202, 205, 135, ["#e1c39d", "#b89574", "#9a785f", "#c4a17e"], -1.05, 1500);
+    // Head profile and hooked beak.
+    paint.fillStyle = "#c9aa85";
+    paint.beginPath(); paint.ellipse(1104, 306, 75, 53, -0.17, 0, Math.PI * 2); paint.fill();
+    paint.fillStyle = "#846047";
+    paint.beginPath(); paint.moveTo(1152, 308); paint.quadraticCurveTo(1214, 298, 1237, 322);
+    paint.quadraticCurveTo(1214, 332, 1195, 359); paint.quadraticCurveTo(1184, 335, 1154, 337); paint.closePath(); paint.fill();
+    strokeField(1160, 310, 72, 44, 30, ["#b18a60", "#78503e", "#d1a16a"], 0.6, 1620);
+    paint.fillStyle = "#4b3d35"; paint.beginPath(); paint.arc(1121, 295, 8, 0, Math.PI * 2); paint.fill();
+    paint.fillStyle = "#f0d7a1"; paint.beginPath(); paint.arc(1124, 292, 2.6, 0, Math.PI * 2); paint.fill();
+    dab(1087, 278, 31, 5, "#e4c79f", -0.22, 0.8);
+    // One raised talon, clearly readable above the earth.
+    paint.fillStyle = "#997758";
+    paint.beginPath(); paint.moveTo(650, 530); paint.quadraticCurveTo(624, 580, 645, 617);
+    paint.quadraticCurveTo(669, 638, 686, 612); paint.lineTo(700, 573);
+    paint.lineTo(722, 620); paint.quadraticCurveTo(744, 642, 761, 614);
+    paint.lineTo(747, 539); paint.closePath(); paint.fill();
+    strokeField(632, 548, 132, 84, 76, ["#c5a07c", "#9c795d", "#80634d"], -1.1, 1690);
+    for (let talon = 0; talon < 3; talon += 1) {
+      paint.fillStyle = "#5e493d";
+      paint.beginPath(); paint.moveTo(642 + talon * 51, 611); paint.quadraticCurveTo(628 + talon * 50, 652, 660 + talon * 51, 637); paint.closePath(); paint.fill();
+    }
+    // Resting feet and carved toes.
+    paint.fillStyle = "#a17f61";
+    paint.beginPath(); paint.ellipse(1000, 583, 115, 49, -0.04, 0, Math.PI * 2); paint.fill();
+    for (let toe = 0; toe < 4; toe += 1) {
+      paint.fillStyle = toe % 2 ? "#b89574" : "#a98769";
+      paint.beginPath(); paint.ellipse(1065 + toe * 35, 600 + (toe % 2) * 8, 49, 20, 0.12, 0, Math.PI * 2); paint.fill();
+      dab(1070 + toe * 35, 594 + (toe % 2) * 8, 30, 4, "#dfbf97", 0.12, 0.8);
+      paint.fillStyle = "#67503f";
+      paint.beginPath(); paint.moveTo(1105 + toe * 33, 597 + (toe % 2) * 8); paint.quadraticCurveTo(1132 + toe * 33, 604, 1112 + toe * 33, 617); paint.closePath(); paint.fill();
+    }
+    // Chiselled lines, lichen and warm edge strokes.
+    for (let mark = 0; mark < 34; mark += 1) {
+      const x = 622 + seededNoise(mark + 1810) * 420;
+      const y = 411 + seededNoise(mark + 1900) * 170;
+      drawStoneStroke(x, y, 18 + seededNoise(mark + 2000) * 35, -0.28, mark % 3 ? "#826650" : "#e1c3a0", 2.4, 0.48);
+    }
+    strokeField(620, 570, 210, 55, 42, ["#778047", "#8b9349", "#59663c"], -0.15, 2010);
+    paint.restore();
+  }
+  function drawChariot() {
+    // A floating lotus-shaped arrival craft, deliberately without wheels.
+    paint.save();
+    paint.translate(300, 525);
+    const aura = paint.createRadialGradient(0, -8, 10, 0, -8, 180);
+    aura.addColorStop(0, "rgba(255,221,112,.3)"); aura.addColorStop(1, "rgba(255,221,112,0)");
+    paint.fillStyle = aura; paint.fillRect(-190, -180, 380, 300);
+    paint.fillStyle = "#d89436";
+    for (let petal = 0; petal < 9; petal += 1) {
+      paint.save(); paint.rotate((petal - 4) * 0.19);
+      paint.beginPath(); paint.ellipse(0, -27, 28, 69, 0, 0, Math.PI * 2); paint.fill();
+      strokeField(-16, -84, 32, 92, 18, ["#ffe58a", "#e0a030", "#f2b844"], 1.3, 2110 + petal * 12);
+      paint.restore();
+    }
+    paint.fillStyle = "#b8282e";
+    paint.beginPath(); paint.ellipse(0, 5, 100, 25, 0, 0, Math.PI * 2); paint.fill();
+    strokeField(-86, -4, 172, 19, 40, ["#dc5a40", "#9f272c", "#f08a56"], 0, 2230);
+    paint.fillStyle = "#ffd36d"; paint.beginPath(); paint.ellipse(0, -36, 53, 17, 0, 0, Math.PI * 2); paint.fill();
+    // Canopy and flowing cloth.
+    paint.fillStyle = "#f7e9d0";
+    paint.beginPath(); paint.moveTo(-78, -65); paint.quadraticCurveTo(0, -128, 82, -65);
+    paint.quadraticCurveTo(66, -52, 47, -62); paint.quadraticCurveTo(0, -92, -47, -62); paint.closePath(); paint.fill();
+    strokeField(-71, -101, 144, 39, 34, ["#fff4d9", "#e6cfaf", "#f6dfbb"], 0.22, 2300);
+    paint.strokeStyle = "#b98645"; paint.lineWidth = 4;
+    paint.beginPath(); paint.moveTo(-43, -80); paint.lineTo(-58, -4); paint.moveTo(45, -80); paint.lineTo(58, -4); paint.stroke();
+    for (let lantern = 0; lantern < 3; lantern += 1) {
+      const x = -50 + lantern * 50;
+      paint.fillStyle = "#ffda72"; paint.beginPath(); paint.arc(x, -22 - (lantern % 2) * 8, 8, 0, Math.PI * 2); paint.fill();
+      dab(x, -22, 19, 3, "#fff3b7", 0, 0.8);
+    }
+    paint.restore();
+  }
+  function drawSummit() {
+    wash("#b6a1b3", "#e7a67f");
+    drawSun();
+    drawHill([[0, 470], [120, 395], [270, 440], [420, 330], [580, 398], [720, 300], [880, 386], [1030, 310], [1200, 370], [1440, 300]], "#8b7884", ["#ab8f94", "#786f7d", "#d3a18e"], 2420);
+    drawHill([[0, 530], [180, 425], [340, 490], [530, 395], [730, 468], [940, 375], [1100, 454], [1290, 386], [1440, 440]], "#687660", ["#83906a", "#596c54", "#a0a175"], 2450);
+    drawMist(397, 0.5, 2500);
+    paint.fillStyle = "#75604f";
+    paint.beginPath(); paint.moveTo(0, 565); paint.quadraticCurveTo(480, 499, 780, 545);
+    paint.quadraticCurveTo(1140, 585, 1440, 510); paint.lineTo(1440, H); paint.lineTo(0, H); paint.closePath(); paint.fill();
+    strokeField(0, 530, W, 280, 450, ["#806448", "#986f50", "#5f5548", "#72804b"], 0.18, 2560);
+    drawEagle();
+    drawChariot();
+    drawHibiscus(76, 755, 1.0, 2600);
+    drawHibiscus(1350, 745, 0.9, 2640);
+  }
+  function drawChicken(x, y, scale, animated = true) {
+    paint.save();
+    const bounce = animated ? Math.max(0, hop) : 0;
+    paint.translate(x, y - bounce);
+    paint.scale(scale, scale);
+    const flap = animated && hop > 4 ? Math.sin(time * 18) * 0.55 : Math.sin(time * 2.2) * 0.08;
+    // Feet and little shadow.
+    paint.fillStyle = "rgba(72,43,35,.35)"; paint.beginPath(); paint.ellipse(2, 4, 45, 10, 0, 0, Math.PI * 2); paint.fill();
+    paint.strokeStyle = "#bb7044"; paint.lineWidth = 5; paint.lineCap = "round";
+    paint.beginPath(); paint.moveTo(-11, -7); paint.lineTo(-15, 8); paint.lineTo(-23, 11); paint.moveTo(12, -7); paint.lineTo(15, 8); paint.lineTo(23, 10); paint.stroke();
+    // Round body, stroked with overlapping paint marks.
+    paint.fillStyle = palette.chicken;
+    paint.beginPath(); paint.ellipse(0, -36, 42, 39, 0, 0, Math.PI * 2); paint.fill();
+    strokeField(-39, -71, 78, 68, 75, ["#fff1cf", palette.chicken, palette.chickenMid], 0.55, 2700);
+    // Small teal shoulder bag, set behind wing.
+    paint.fillStyle = palette.bag;
+    paint.beginPath(); paint.roundRect(19, -38, 24, 29, 6); paint.fill();
+    paint.strokeStyle = "#d5b77e"; paint.lineWidth = 4;
+    paint.beginPath(); paint.moveTo(-12, -62); paint.quadraticCurveTo(25, -53, 29, -28); paint.stroke();
+    dab(30, -27, 10, 3, "#a9c4a0", 0, 0.85);
+    // Wings flap while hopping.
+    paint.save(); paint.translate(-16, -38); paint.rotate(-flap);
+    paint.fillStyle = "#dfa956"; paint.beginPath(); paint.ellipse(-6, 1, 19, 12, -0.35, 0, Math.PI * 2); paint.fill();
+    strokeField(-25, -11, 34, 22, 20, ["#f5ca76", "#ce9147", "#f2bd66"], -0.2, 2800);
+    paint.restore();
+    // Head and comb.
+    paint.fillStyle = palette.chicken; paint.beginPath(); paint.arc(3, -79, 28, 0, Math.PI * 2); paint.fill();
+    strokeField(-20, -103, 47, 45, 34, ["#fff0c9", palette.chicken, "#e9c580"], 0.1, 2890);
+    paint.fillStyle = palette.comb;
+    paint.beginPath(); paint.ellipse(-9, -106, 8, 13, -0.25, 0, Math.PI * 2);
+    paint.ellipse(3, -111, 8, 15, 0.08, 0, Math.PI * 2);
+    paint.ellipse(14, -105, 7, 11, 0.3, 0, Math.PI * 2); paint.fill();
+    paint.fillStyle = "#3a302d"; paint.beginPath(); paint.arc(12, -82, 3.4, 0, Math.PI * 2); paint.fill();
+    paint.fillStyle = "#fff7dc"; paint.beginPath(); paint.arc(13, -83, 1.15, 0, Math.PI * 2); paint.fill();
+    paint.fillStyle = "#e99945"; paint.beginPath(); paint.moveTo(26, -73); paint.lineTo(44, -67); paint.lineTo(26, -61); paint.closePath(); paint.fill();
+    paint.restore();
+  }
+  function rebuildScene() {
+    paint.clearRect(0, 0, W, H);
+    if (scene === 0) drawVillage(); else drawSummit();
+  }
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.35);
+    canvas.width = Math.max(1, Math.floor(window.innerWidth * dpr));
+    canvas.height = Math.max(1, Math.floor(window.innerHeight * dpr));
+    rebuildScene();
+  }
+  function sparkle(x, y, radius, alpha) {
+    context.save(); context.globalAlpha = alpha; context.fillStyle = "#fff0b2";
+    context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill();
+    context.strokeStyle = "#ffe29b"; context.lineWidth = radius * 0.6;
+    context.beginPath(); context.moveTo(x - radius * 2.6, y); context.lineTo(x + radius * 2.6, y);
+    context.moveTo(x, y - radius * 2.6); context.lineTo(x, y + radius * 2.6); context.stroke();
+    context.restore();
+  }
+  function drawFrame(timestamp) {
+    const delta = Math.min((timestamp - lastTime) / 1000 || 0, 0.04);
+    lastTime = timestamp;
+    time += delta;
+    if (hop > 0 || hopVelocity > 0) {
+      hop += hopVelocity * delta;
+      hopVelocity -= 750 * delta;
+      if (hop <= 0) { hop = 0; hopVelocity = 0; }
+    }
+    if (active && scene === 0) {
+      if (held.has("a")) chickenX -= 190 * delta;
+      if (held.has("d")) chickenX += 190 * delta;
+      if (held.has("w")) chickenDepth -= 120 * delta;
+      if (held.has("s")) chickenDepth += 120 * delta;
+      chickenX = Math.max(-260, Math.min(260, chickenX));
+      chickenDepth = Math.max(-90, Math.min(70, chickenDepth));
+    }
+    cameraTarget = scene === 0 ? Math.sin(time * 0.13) * 9 : Math.sin(time * 0.1) * 15;
+    camera += (cameraTarget - camera) * Math.min(1, delta * 1.6);
+    const width = canvas.width, height = canvas.height;
+    const scale = Math.max(width / W, height / H);
+    const drawWidth = W * scale, drawHeight = H * scale;
+    const offsetX = (width - drawWidth) * 0.5 + camera * (width / W) * scale;
+    const offsetY = (height - drawHeight) * 0.5;
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.fillStyle = "#8d7881"; context.fillRect(0, 0, width, height);
+    context.drawImage(world, offsetX, offsetY, drawWidth, drawHeight);
+    const unit = width / W * scale;
+    const chickWorldX = (scene === 0 ? 730 + chickenX : 420) + camera;
+    const chickWorldY = scene === 0 ? 708 + chickenDepth : 660;
+    dynamicPaint.clearRect(0, 0, W, H);
+    paint = dynamicPaint;
+    drawChicken(chickWorldX, chickWorldY, scene === 0 ? 0.76 : 0.58, true);
+    if (scene === 1) {
+      drawFeather(635, 580, 0.55, true);
+      drawFeather(682, 568, 0.49, true);
+      drawFeather(730, 584, 0.55, true);
+    }
+    paint = world.getContext("2d");
+    context.drawImage(dynamicLayer, offsetX, offsetY, drawWidth, drawHeight);
+    dust.forEach((particle) => {
+      const driftX = (particle.x + time * particle.speed * 0.25) % W;
+      const driftY = particle.y + Math.sin(time * 0.8 + particle.phase) * 10;
+      const pulse = 0.25 + (Math.sin(time * 2.1 + particle.phase) + 1) * 0.24;
+      sparkle(offsetX + (driftX / W) * drawWidth, offsetY + (driftY / H) * drawHeight,
+        particle.r * unit, pulse);
+    });
+    requestAnimationFrame(drawFrame);
+  }
+  function selectScene(nextScene) {
+    scene = Math.max(0, Math.min(chapters.length - 1, nextScene));
+    const chapter = chapters[scene];
+    chapterTitle.textContent = `${chapter.number} · ${chapter.title}`;
+    chapterSubtitle.textContent = chapter.subtitle;
+    document.getElementById("back-button").disabled = scene === 0;
+    document.getElementById("next-button").textContent = scene === chapters.length - 1 ? "Village ↶" : "Next ›";
+    rebuildScene();
+    camera = scene === 0 ? -22 : 26;
+    cameraTarget = 0;
+  }
+  function begin() {
+    if (active) return;
+    active = true;
+    titleScreen.classList.add("hidden");
+    controlbar.classList.add("visible");
+    hint.classList.add("visible");
+    selectScene(0);
+    window.setTimeout(() => hint.classList.remove("visible"), 6500);
+  }
+  function cluck() {
+    hop = 0;
+    hopVelocity = 300;
+  }
+  document.getElementById("start-button").addEventListener("click", begin);
+  document.getElementById("back-button").addEventListener("click", () => selectScene(scene === 0 ? 0 : scene - 1));
+  document.getElementById("next-button").addEventListener("click", () => selectScene(scene === chapters.length - 1 ? 0 : scene + 1));
+  document.getElementById("cluck-button").addEventListener("click", cluck);
+  window.addEventListener("keydown", (event) => {
+    const key = event.key.toLowerCase();
+    if (["arrowleft", "arrowright", " "].includes(key)) event.preventDefault();
+    if (!active && (key === "enter" || key === " ")) { begin(); return; }
+    if (key === "arrowright" && active) selectScene(scene === chapters.length - 1 ? 0 : scene + 1);
+    if (key === "arrowleft" && active) selectScene(scene === 0 ? 0 : scene - 1);
+    if (key === " " && active) cluck();
+    held.add(key);
+  });
+  window.addEventListener("keyup", (event) => held.delete(event.key.toLowerCase()));
+  window.addEventListener("blur", () => held.clear());
+  window.addEventListener("resize", resize);
+  resize();
+  requestAnimationFrame(drawFrame);
+})();
+</script>
+</body>
+</html>
